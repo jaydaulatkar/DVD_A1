@@ -7,6 +7,7 @@
 //   * inputs are applied on the falling edge, so they are stable before
 //     clock edge 1 (captured into a_r/b_r) and the product is captured into p
 //     at clock edge 2; p is checked on the following falling edge
+//   * also checks that the asynchronous reset clears p
 //   * prints one line per mismatch and exactly one PASS/FAIL summary line
 //   * writes the waveform file mult.vcd
 // Works for both the RTL and the synthesized gate-level netlist.
@@ -56,6 +57,11 @@ module tb_mult;
         rst_n = 1'b0;
         repeat (2) @(posedge clk);
         @(negedge clk);
+        // the asynchronous reset must have cleared the output register
+        if (p !== 8'd0) begin
+            errors = errors + 1;
+            $display("MISMATCH at %0t: p=%0d during reset, expected 0", $time, p);
+        end
         rst_n = 1'b1;
 
         for (ia = 0; ia < 16; ia = ia + 1) begin

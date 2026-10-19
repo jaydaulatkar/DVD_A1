@@ -1,0 +1,59 @@
+name: rtl-to-gds
+on:
+  push:
+    branches: [eda-ci]
+
+jobs:
+  flow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          docker system prune -af || true
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - name: Pull IIC-OSIC-TOOLS
+        run: |
+          docker pull hpretl/iic-osic-tools:latest
+          docker image inspect hpretl/iic-osic-tools:latest --format '{{.Id}} {{.Created}}'
+          df -h /
+
+      - name: Run flow in container
+        run: |
+          STAGE=$(cat ci/STAGE 2>/dev/null || echo all)
+          chmod -R a+rwX .
+          docker run --rm --user $(id -u):$(id -g) -e STAGE=$STAGE \
+            -v ${{ github.workspace }}:/foss/designs/DVD_A1 \
+            hpretl/iic-osic-tools:latest --skip bash /foss/designs/DVD_A1/ci/flow.sh
+
+      - name: GTKWave screenshot
+        if: hashFiles('ci_out/mult.vcd') != ''
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gtkwave xvfb xdotool imagemagick x11-apps > /dev/null
+          Xvfb :99 -screen 0 1600x900x24 &
+          sleep 2
+          export DISPLAY=:99
+          gtkwave --rcvar "hide_sst on" --rcvar "initial_window_x 1600" --rcvar "initial_window_y 640" -S ci/gtkwave_view.tcl ci_out/mult.vcd > ci_out/gtkwave.log 2>&1 &
+          sleep 8
+          for W in $(xdotool search --onlyvisible --name "GTKWave"); do xdotool windowmove $W 0 0 windowsize $W 1600 640 || true; done
+          sleep 4
+          import -window root -crop 1600x640+0+0 ci_out/waveform_gtkwave.png
+          kill %2 || true
+
+      - name: Collect outputs
+        if: always()
+        run: |
+          mkdir -p ci_out/repo
+          cp -r synth sta pnr/config.json ci_out/repo/ 2>/dev/null || true
+          ls -la ci_out
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: flow-outputs
+          path: ci_out

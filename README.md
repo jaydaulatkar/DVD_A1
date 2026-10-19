@@ -10,15 +10,24 @@
 ## Environment
 
 All commands are run from the repository root inside the IIC-OSIC-TOOLS container
-(`hpretl/iic-osic-tools:latest`), with the repository mounted under `/foss/designs`.
+(`hpretl/iic-osic-tools:latest`), with the repository mounted under `/foss/designs/DVD_A1`:
 
 ```sh
+docker pull hpretl/iic-osic-tools:latest
+docker run --rm -it --user $(id -u):$(id -g) -v $PWD:/foss/designs/DVD_A1 \
+  hpretl/iic-osic-tools:latest --skip bash
+cd /foss/designs/DVD_A1
+
 iverilog -V | head -1      # Icarus Verilog version 14.0 (devel)
 yosys -V                   # Yosys 0.70
 sta -version               # 3.1.0
-echo $PDK_ROOT $PDK        # /foss/pdks ihp-sg13g2  -> not sky130A, so:
-sak-pdk sky130A            # select SKY130 (equivalently: export PDK=sky130A)
+klayout -v                 # KLayout 0.30.12
+echo $PDK_ROOT $PDK        # /foss/pdks ihp-sg13g2  -> not sky130A, so select SKY130:
+export PDK=sky130A         # (same effect as: sak-pdk sky130A)
+export STD_CELL_LIBRARY=sky130_fd_sc_hd
 ```
+
+The container was run on a Linux (Ubuntu 24.04) host. The steps below are the exact commands, in order.
 
 ## Part A — RTL design and verification
 
@@ -100,3 +109,36 @@ slack (`timing__setup__ws`) is taken over all 9 signoff corners; it is always se
 
 `pnr/metrics.json` and `pnr/mult_array.gds` are copied from `runs/RUN_2026-10-19_19-32-37/final/`.
 The `runs/` folder is not committed.
+
+Results of the final run: setup slack +0.396 ns (worst corner `max_ss_100C_1v60`; tt corner +4.237 ns),
+post-route Fmax = 1000 / (8.0 − 0.396) = 131.51 MHz (Part C: 358.42 MHz), 1883 instances
+(331 standard cells + 1552 decap/fill), core area 17759.5 µm², wirelength 2499 µm, 0 DRC, 0 LVS errors.
+
+## Screenshots for the report
+
+```sh
+# waveform: open the RTL waveform, add clk, rst_n, a, b, dut.a_r, dut.b_r, p (decimal),
+# baseline marker at 3035 ns (edge 0) and marker at 3055 ns (edge 2) -> "Marker: B+20 ns"
+gtkwave mult.vcd
+
+# layout: whole die, then zoom into the standard-cell rows and metal wires
+klayout pnr/mult_array.gds
+```
+
+## Report
+
+`report/report.pdf` contains the completed results tables of Parts A–D, the PASS/FAIL lines, the
+hand-worked example (A = 9, B = 7), the annotated waveform screenshot, the block diagram, the list of
+cells on the critical path, the two layout screenshots and the answers to questions 1–6.
+
+## Repository structure
+
+```
+README.md
+rtl/full_adder.v, rtl/mult_array.v
+tb/tb_mult.v
+synth/synth.tcl, synth/mult_array_netlist.v, synth/mult_array_stat.rpt
+sta/sta.tcl, sta/mult_array_timing.rpt
+pnr/config.json, pnr/metrics.json, pnr/mult_array.gds
+report/report.pdf
+```

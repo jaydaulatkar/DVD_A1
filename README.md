@@ -33,6 +33,7 @@ The container was run on a Linux (Ubuntu 24.04) host. The steps below are the ex
 
 ```sh
 # simulate the RTL with the exhaustive self-checking testbench
+# (all 256 vectors with the 2-cycle latency, plus a check that the reset clears p)
 iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
 vvp sim
 #   -> PASS: 256 vectors checked, 0 errors
@@ -113,6 +114,9 @@ The `runs/` folder is not committed.
 Results of the final run: setup slack +0.396 ns (worst corner `max_ss_100C_1v60`; tt corner +4.237 ns),
 post-route Fmax = 1000 / (8.0 − 0.396) = 131.51 MHz (Part C: 358.42 MHz), 1883 instances
 (331 standard cells + 1552 decap/fill), core area 17759.5 µm², wirelength 2499 µm, 0 DRC, 0 LVS errors.
+The only remaining warning is 11 max-slew violations in the ss corner, all on the asynchronous reset net
+`rst_n` (0.821 ns transition vs. 0.75 ns limit); reset recovery/removal slack is still +5.15 / +1.30 ns.
+It is not one of the pass criteria (0 DRC, 0 LVS, setup slack ≥ 0).
 
 ## Screenshots for the report
 

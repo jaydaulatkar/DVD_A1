@@ -55,3 +55,14 @@ vvp gls
 ```
 
 Result: 61 cells (16 × `sky130_fd_sc_hd__dfrtp_1`), 756.976 µm², flip-flops 400.384 µm² (52.89 %).
+
+## Part C — Static timing analysis with OpenSTA
+
+```sh
+sta sta/sta.tcl                 # T = 10 ns (default)  -> worst slack max 7.21
+#   Tmin = T - WNS = 10 - 7.21 = 2.79 ns,  Fmax = 1000 / 2.79 = 358.42 MHz
+T=2.79 sta sta/sta.tcl          # re-run at T = Tmin     -> worst slack max 0.00 (0.003 ns)
+#   sta/mult_array_timing.rpt is the report of this final run (T = 2.79 ns)
+```
+
+`sta/sta.tcl` reads the period from the environment variable `T` (default 10.0 ns).

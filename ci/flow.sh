@@ -39,6 +39,14 @@ rm -f mult.vcd
 grep -c MISMATCH $OUT/fail_test_sim.log | sed 's/^/mismatch lines: /'
 grep -E "^(PASS|FAIL):" $OUT/fail_test_sim.log
 git diff --stat -- rtl/ || true
+echo "== extra check: reset mutation (p reset value 0 -> 5) =="
+cp rtl/mult_array.v /tmp/mult_array.v.orig
+sed -i "s/p   <= 8'd0;/p   <= 8'd5;/" rtl/mult_array.v
+grep -n "p   <= 8'd5" rtl/mult_array.v
+iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
+vvp sim > $OUT/reset_mutation_sim.log 2>&1
+cp /tmp/mult_array.v.orig rtl/mult_array.v
+grep -E "reset|^(PASS|FAIL):" $OUT/reset_mutation_sim.log
 # regenerate the correct waveform
 iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
 vvp sim > /dev/null 2>&1

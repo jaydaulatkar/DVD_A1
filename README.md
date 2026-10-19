@@ -39,3 +39,19 @@ git checkout rtl/full_adder.v          # undo the change
 
 Example used for the waveform (roll number **2023102044**, Jay Daulatkar): last digit 4,
 so A = 4 + 5 = **9**, B = **7**, A × B = **63**.
+
+## Part B — Logic synthesis with Yosys
+
+```sh
+yosys -c synth/synth.tcl
+#   -> synth/mult_array_netlist.v, synth/mult_array_stat.rpt
+
+# gate-level simulation of the synthesized netlist with the same testbench
+CELLS=$PDK_ROOT/sky130A/libs.ref/sky130_fd_sc_hd/verilog
+iverilog -g2012 -DFUNCTIONAL -DUNIT_DELAY=#1 -o gls \
+  tb/tb_mult.v $CELLS/primitives.v $CELLS/sky130_fd_sc_hd.v synth/mult_array_netlist.v
+vvp gls
+#   -> PASS: 256 vectors checked, 0 errors
+```
+
+Result: 61 cells (16 × `sky130_fd_sc_hd__dfrtp_1`), 756.976 µm², flip-flops 400.384 µm² (52.89 %).

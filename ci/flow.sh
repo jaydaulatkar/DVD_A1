@@ -73,16 +73,36 @@ if [ "$STAGE" = "all" ] || [ "$STAGE" = "d" ]; then
 if [ -f pnr/config.json ]; then
   echo "== Part D: LibreLane =="
   cd pnr
-  librelane config.json 2>&1 | tee ../$OUT/librelane.log
-  RC=${PIPESTATUS[0]}
-  echo "librelane exit code: $RC" | tee -a ../$OUT/librelane.log
-  RUN=$(ls -td runs/*/ | head -1)
-  if [ ! -f "$RUN/final/metrics.json" ]; then
-    echo "== retry with --manual-pdk ==" | tee -a ../$OUT/librelane.log
-    librelane --manual-pdk --pdk-root $PDK_ROOT config.json 2>&1 | tee ../$OUT/librelane_retry.log
-    echo "librelane exit code: ${PIPESTATUS[0]}" | tee -a ../$OUT/librelane_retry.log
+  mkdir -p ../$OUT/attempts
+  echo "attempt,CLOCK_PERIOD,exit_code,setup_ws,setup_ws_tt,drc_magic,drc_klayout,lvs_errors,run_dir" > ../$OUT/attempts.csv
+  N=0
+  P=$(python3 -c "import json;print(json.load(open('config.json'))['CLOCK_PERIOD'])")
+  while :; do
+    N=$((N+1))
+    python3 - "$P" <<'PY'
+import json,sys
+c=json.load(open('config.json')); c['CLOCK_PERIOD']=float(sys.argv[1])
+open('config.json','w').write(json.dumps(c,indent=4)+chr(10))
+PY
+    echo "=== attempt $N: CLOCK_PERIOD=$P ===" | tee -a ../$OUT/librelane.log
+    librelane config.json 2>&1 | tee ../$OUT/attempts/librelane_attempt${N}_P${P}.log
+    RC=${PIPESTATUS[0]}
     RUN=$(ls -td runs/*/ | head -1)
-  fi
+    cp "$RUN/final/metrics.json" ../$OUT/attempts/metrics_attempt${N}_P${P}.json 2>/dev/null
+    LINE=$(python3 - "$RUN/final/metrics.json" <<'PY'
+import json,sys
+try: m=json.load(open(sys.argv[1]))
+except Exception: print("NA,NA,NA,NA,NA"); sys.exit()
+g=lambda k: m.get(k,"NA")
+print(f"{g('timing__setup__ws')},{g('timing__setup__ws__corner:nom_tt_025C_1v80')},{g('magic__drc_error__count')},{g('klayout__drc_error__count')},{g('design__lvs_error__count')}")
+PY
+)
+    echo "$N,$P,$RC,$LINE,$RUN" | tee -a ../$OUT/attempts.csv
+    if [ "$RC" = "0" ]; then break; fi
+    if [ $N -ge 10 ]; then break; fi
+    P=$(python3 -c "print($P+0.5)")
+  done
+  cp config.json ../$OUT/config_final.json
   ls runs/ | tee ../$OUT/runs_list.txt
   for nl in "$RUN"/final/nl/*.nl.v "$RUN"/final/pnl/*.pnl.v; do
     [ -f "$nl" ] && { echo "== $nl"; grep -o "sky130_fd_sc_hd__[a-z0-9_]*" "$nl" | sort | uniq -c | sort -rn; }

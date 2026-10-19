@@ -38,12 +38,11 @@ jobs:
           Xvfb :99 -screen 0 1600x900x24 &
           sleep 2
           export DISPLAY=:99
-          gtkwave -S ci/gtkwave_view.tcl ci_out/mult.vcd > ci_out/gtkwave.log 2>&1 &
+          gtkwave --rcvar "hide_sst on" --rcvar "initial_window_x 1600" --rcvar "initial_window_y 640" -S ci/gtkwave_view.tcl ci_out/mult.vcd > ci_out/gtkwave.log 2>&1 &
           sleep 8
-          WID=$(xdotool search --name "GTKWave" | head -1)
-          xdotool windowmove $WID 0 0 windowsize $WID 1600 900 || true
+          for W in $(xdotool search --onlyvisible --name "GTKWave"); do xdotool windowmove $W 0 0 windowsize $W 1600 640 || true; done
           sleep 4
-          import -window root ci_out/waveform_gtkwave.png
+          import -window root -crop 1600x640+0+0 ci_out/waveform_gtkwave.png
           kill %2 || true
 
       - name: Collect outputs

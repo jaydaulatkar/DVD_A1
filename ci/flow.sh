@@ -6,6 +6,10 @@ cd /foss/designs/DVD_A1
 OUT=ci_out
 mkdir -p $OUT
 STAGE=${STAGE:-all}
+# select the SKY130 PDK (the image defaults to another PDK)
+type sak-pdk 2>&1 | head -2
+export PDK=sky130A
+export STD_CELL_LIBRARY=sky130_fd_sc_hd
 
 {
 echo "== tool versions =="
@@ -73,6 +77,16 @@ if [ -f pnr/config.json ]; then
   RC=${PIPESTATUS[0]}
   echo "librelane exit code: $RC" | tee -a ../$OUT/librelane.log
   RUN=$(ls -td runs/*/ | head -1)
+  if [ ! -f "$RUN/final/metrics.json" ]; then
+    echo "== retry with --manual-pdk ==" | tee -a ../$OUT/librelane.log
+    librelane --manual-pdk --pdk-root $PDK_ROOT config.json 2>&1 | tee ../$OUT/librelane_retry.log
+    echo "librelane exit code: ${PIPESTATUS[0]}" | tee -a ../$OUT/librelane_retry.log
+    RUN=$(ls -td runs/*/ | head -1)
+  fi
+  ls runs/ | tee ../$OUT/runs_list.txt
+  for nl in "$RUN"/final/nl/*.nl.v "$RUN"/final/pnl/*.pnl.v; do
+    [ -f "$nl" ] && { echo "== $nl"; grep -o "sky130_fd_sc_hd__[a-z0-9_]*" "$nl" | sort | uniq -c | sort -rn; }
+  done > ../$OUT/pnr_cell_types.txt
   echo "run dir: $RUN"
   if [ -f "$RUN/final/metrics.json" ]; then
     cp "$RUN/final/metrics.json" ../$OUT/metrics.json

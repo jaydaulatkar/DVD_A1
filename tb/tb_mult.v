@@ -46,6 +46,7 @@ module tb_mult;
     end
 
     initial begin
+        $timeformat(-9, 0, " ns", 0);
         errors  = 0;
         vectors = 0;
         a       = 4'd0;
@@ -72,7 +73,7 @@ module tb_mult;
                 vectors = vectors + 1;
                 if (p !== expected) begin
                     errors = errors + 1;
-                    $display("MISMATCH at %0t ns: a=%0d b=%0d expected=%0d got=%0d",
+                    $display("MISMATCH at %0t: a=%0d b=%0d expected=%0d got=%0d",
                              $time, ia, ib, expected, p);
                 end
             end

@@ -9,7 +9,7 @@ LibreLane place-and-route flow to a GDSII layout on the SkyWater SKY130 process 
 | Name | Roll number |
 |------|-------------|
 | Jay Daulatkar | 2023102044 |
-| _Teammate name (to be filled)_ | _Teammate roll number (to be filled)_ |
+| Parth Tokekar | 2023102041 |
 
 ## Contents
 

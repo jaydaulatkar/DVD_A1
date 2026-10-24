@@ -21,6 +21,8 @@ librelane --version 2>&1 | tail -1
 klayout -v
 } 2>&1 | tee $OUT/versions.log
 
+if [ "$STAGE" = "readme" ]; then bash ci/readme_check.sh; exit 0; fi
+
 if [ "$STAGE" = "all" ] || [ "$STAGE" = "abc" ]; then
 # ---------------------------------------------------------------- Part A
 echo "== Part A: RTL simulation =="

@@ -18,8 +18,8 @@ jobs:
 
       - name: Pull IIC-OSIC-TOOLS
         run: |
-          docker pull hpretl/iic-osic-tools:latest
-          docker image inspect hpretl/iic-osic-tools:latest --format '{{.Id}} {{.Created}}'
+          docker pull hpretl/iic-osic-tools:2026.10
+          docker image inspect hpretl/iic-osic-tools:2026.10 --format '{{.Id}} {{.Created}} {{.RepoDigests}}'
           df -h /
 
       - name: Run flow in container
@@ -28,7 +28,7 @@ jobs:
           chmod -R a+rwX .
           docker run --rm --user $(id -u):$(id -g) -e STAGE=$STAGE \
             -v ${{ github.workspace }}:/foss/designs/DVD_A1 \
-            hpretl/iic-osic-tools:latest --skip bash /foss/designs/DVD_A1/ci/flow.sh
+            hpretl/iic-osic-tools:2026.10 --skip bash /foss/designs/DVD_A1/ci/flow.sh
 
       - name: GTKWave screenshot
         if: hashFiles('ci_out/mult.vcd') != ''

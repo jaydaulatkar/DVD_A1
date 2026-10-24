@@ -99,8 +99,25 @@ cd DVD_A1
 **Step 3 — download the tool image (one time, ~4 GB)**
 
 ```sh
-docker pull hpretl/iic-osic-tools:latest
+docker pull hpretl/iic-osic-tools:2026.10
 ```
+
+All committed results were produced with this exact image release:
+
+| Item | Version |
+|---|---|
+| Image | `hpretl/iic-osic-tools:2026.10`, digest `sha256:306585de35d198e70ea58950f77147c86f56c698726a19afea9f1c83009557be` |
+| Icarus Verilog | 14.0 (devel) s20260301-579-g15d870a5 |
+| Yosys | 0.70 (git 28ba3cb92) |
+| OpenSTA | 3.1.0 (80fbbb2945) |
+| LibreLane | 3.1.0.dev3 |
+| KLayout / Magic / Netgen | 0.30.12 / 8.3 / 1.5.324 |
+| PDK | `sky130A` from `/foss/pdks` in the image, library `sky130_fd_sc_hd` |
+
+To be certain of the same image even if the `2026.10` tag were ever moved, pull it by digest:
+`docker pull hpretl/iic-osic-tools@sha256:306585de35d198e70ea58950f77147c86f56c698726a19afea9f1c83009557be`.
+A newer image (e.g. `latest`) will also run the flow, but cell choices, slack and wirelength may
+then differ slightly from the committed numbers.
 
 Continue with [Section 5](#5-starting-the-tool-container).
 
@@ -174,14 +191,14 @@ xhost +SI:localuser:$(whoami)          # Ubuntu desktop only: allow the containe
 docker run --rm -it --user $(id -u):$(id -g) \
   -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
   -v $PWD:/foss/designs/DVD_A1 \
-  hpretl/iic-osic-tools:latest --skip bash
+  hpretl/iic-osic-tools:2026.10 --skip bash
 ```
 
 **Way 2 — terminal only (no GUI; GTKWave/KLayout then cannot open)**
 
 ```sh
 docker run --rm -it --user $(id -u):$(id -g) -v $PWD:/foss/designs/DVD_A1 \
-  hpretl/iic-osic-tools:latest --skip bash
+  hpretl/iic-osic-tools:2026.10 --skip bash
 ```
 
 **Way 3 — full Linux desktop in the web browser (VNC mode, as in the assignment PDF)**
@@ -190,7 +207,7 @@ docker run --rm -it --user $(id -u):$(id -g) -v $PWD:/foss/designs/DVD_A1 \
 cd ~/eda
 git clone --depth=1 https://github.com/iic-jku/iic-osic-tools.git
 cd iic-osic-tools
-DESIGNS=$HOME/eda/designs ./start_vnc.sh
+DOCKER_TAG=2026.10 DESIGNS=$HOME/eda/designs ./start_vnc.sh
 ```
 
 Then open <http://localhost> in a browser (the start script prints the URL and password; see the
@@ -218,7 +235,8 @@ Files written inside `/foss/designs/DVD_A1` appear directly in the repository fo
 ## 6. Running the flow — every command, in order
 
 These are the exact commands that produced the committed results, run from `/foss/designs/DVD_A1`
-inside the container. Re-running them regenerates `synth/` and `sta/` outputs with identical content.
+inside the container. With the pinned `2026.10` image (Section 3), re-running them regenerates the
+`synth/` and `sta/` outputs with identical content; this was checked by a complete re-run.
 
 ### Part A — RTL design and verification
 
@@ -230,19 +248,17 @@ vvp sim
 #   -> PASS: 256 vectors checked, 0 errors        (also writes mult.vcd)
 gtkwave mult.vcd                       # see Section 7 for the signals and markers
 
-# error-injection test (task 6): temporarily change sum to a ^ b in rtl/full_adder.v
-sed -i 's/assign sum  = a ^ b ^ cin;/assign sum  = a ^ b;/' rtl/full_adder.v
-grep -n "assign sum" rtl/full_adder.v  # shows: assign sum  = a ^ b;
-iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v
-vvp sim
+# error-injection test (task 6): simulate a faulty copy with sum = a ^ b
+# (the copy lives in /tmp, so rtl/full_adder.v itself is never modified)
+sed 's/assign sum  = a ^ b ^ cin;/assign sum  = a ^ b;/' rtl/full_adder.v > /tmp/full_adder_bug.v
+grep -n "assign sum" /tmp/full_adder_bug.v   # shows: assign sum  = a ^ b;
+iverilog -g2012 -o sim_bug tb/tb_mult.v /tmp/full_adder_bug.v rtl/mult_array.v
+vvp sim_bug
 #   -> MISMATCH at 1060 ns: a=3 b=3 expected=9 got=5  ...
 #   -> FAIL: 256 vectors checked, 95 errors
-git checkout rtl/full_adder.v          # undo the change
-iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v && vvp sim   # PASS again
+rm -f sim_bug /tmp/full_adder_bug.v
+vvp sim                                # the correct design still gives PASS
 ```
-
-(If `git checkout` reports "dubious ownership" inside the container, run it on the host instead, or
-undo the change with `sed -i 's/assign sum  = a ^ b;/assign sum  = a ^ b ^ cin;/' rtl/full_adder.v`.)
 
 ### Part B — Logic synthesis with Yosys
 

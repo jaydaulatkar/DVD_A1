@@ -11,6 +11,9 @@
 //   * prints one line per mismatch and exactly one PASS/FAIL summary line
 //   * writes the waveform file mult.vcd
 // Works for both the RTL and the synthesized gate-level netlist.
+// Run:  iverilog -g2012 -o sim tb/tb_mult.v rtl/full_adder.v rtl/mult_array.v && vvp sim
+//
+// Authors: Jay Daulatkar (2023102044), Parth Tokekar (2023102041)
 // -----------------------------------------------------------------------------
 `timescale 1ns / 1ps
 

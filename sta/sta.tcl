@@ -2,7 +2,7 @@
 # sta.tcl  --  OpenSTA setup-timing analysis of the synthesized mult_array
 # Run from the repository root with:          sta sta/sta.tcl
 # The clock period T (ns) defaults to 10.0; override it with the T variable:
-#                                              T=2.00 sta sta/sta.tcl
+#                                              T=2.79 sta sta/sta.tcl   (Tmin)
 # Typical corner only (tt_025C_1v80).
 # -----------------------------------------------------------------------------
 

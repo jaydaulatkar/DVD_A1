@@ -18,7 +18,7 @@ echo "== Part A task 6 (README commands) =="
 sed 's/assign sum  = a ^ b ^ cin;/assign sum  = a ^ b;/' rtl/full_adder.v > /tmp/full_adder_bug.v
 grep -n "assign sum" /tmp/full_adder_bug.v
 iverilog -g2012 -o sim_bug tb/tb_mult.v /tmp/full_adder_bug.v rtl/mult_array.v
-vvp sim_bug | sed -n '1p;$p'
+vvp sim_bug > /tmp/bug.log; grep -m1 MISMATCH /tmp/bug.log; grep -E '^(PASS|FAIL):' /tmp/bug.log
 rm -f sim_bug /tmp/full_adder_bug.v
 vvp sim | grep -E "^(PASS|FAIL):"
 cmp rtl/full_adder.v /tmp/committed/full_adder.v && echo "rtl/full_adder.v untouched"

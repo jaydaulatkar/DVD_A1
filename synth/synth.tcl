@@ -1,6 +1,7 @@
 # -----------------------------------------------------------------------------
 # synth.tcl  --  Yosys synthesis of mult_array to SKY130 sky130_fd_sc_hd cells
 # Run from the repository root with:   yosys -c synth/synth.tcl
+# Outputs: synth/mult_array_netlist.v (netlist), synth/mult_array_stat.rpt (cells/area)
 # -----------------------------------------------------------------------------
 
 # Liberty timing library, typical corner (Section 4.2)

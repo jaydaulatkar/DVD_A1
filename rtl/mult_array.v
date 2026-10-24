@@ -18,6 +18,8 @@
 //           p[2] = s2[0];           r2 = {c2[4], s2[3],  s2[2],  s2[1]}
 //   row 3 : FA(pp3[j], r2[j], c3[j]) -> s3[j], c3[j+1];  c3[0] = 0
 //           p[3] = s3[0];           p[7:4] = {c3[4], s3[3], s3[2], s3[1]}
+//
+// Authors: Jay Daulatkar (2023102044), Parth Tokekar (2023102041)
 // -----------------------------------------------------------------------------
 module mult_array (
     input  wire       clk,    // clock, rising edge
